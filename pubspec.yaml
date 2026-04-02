@@ -74,7 +74,7 @@
 name: gyroscope_plugin
 description: Sentriqx SDK Flutter Plugin
 version: 1.0.0
-homepage: https://github.com/HamzaIqbal-11/santriqx-plugin
+homepage: https://github.com/HamzaIqbal-11/santriqx_plugin
 
 environment:
   sdk: ^3.8.1
