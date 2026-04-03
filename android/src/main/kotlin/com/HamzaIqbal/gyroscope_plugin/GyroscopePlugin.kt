@@ -82,10 +82,24 @@ private var savedProjectionData: Intent? = null
         methodChannel.setMethodCallHandler(this)
 
         eventChannel = EventChannel(binding.binaryMessenger, "gyroscope_plugin/events")
-        eventChannel.setStreamHandler(object : EventChannel.StreamHandler {
-            override fun onListen(args: Any?, sink: EventChannel.EventSink?) { eventSink = sink }
-            override fun onCancel(args: Any?) { eventSink = null }
-        })
+       eventChannel.setStreamHandler(object : EventChannel.StreamHandler {
+    override fun onListen(args: Any?, sink: EventChannel.EventSink?) {
+        eventSink = sink
+        gyroscopeSDK?.setSensorListener { gx, gy, gz, ax, ay, az ->
+            sink?.success(mapOf(
+                "x" to gx, "y" to gy, "z" to gz,
+                "ax" to ax, "ay" to ay, "az" to az,
+                "timestampNs" to System.nanoTime(),
+                "isIdle" to false,
+                "sessionId" to ""
+            ))
+        }
+    }
+    override fun onCancel(args: Any?) {
+        eventSink = null
+        gyroscopeSDK?.setSensorListener(null)
+    }
+})
 
         overlayChannel = MethodChannel(binding.binaryMessenger, "gyroscope_plugin/overlay")
         overlayChannel.setMethodCallHandler { call, result ->
