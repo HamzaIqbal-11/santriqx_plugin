@@ -52,6 +52,9 @@ class GyroscopePlugin : FlutterPlugin, MethodCallHandler, ActivityAware,
     private var pendingFaceResult: Result? = null
     private var pendingKycResult: Result? = null
 
+    private var savedProjectionResultCode: Int = 0
+private var savedProjectionData: Intent? = null
+
     // Pending stream config (stored until permission granted)
     private var pendingGameId: String? = null
     private var pendingStreamUrl: String? = null
@@ -375,15 +378,35 @@ class GyroscopePlugin : FlutterPlugin, MethodCallHandler, ActivityAware,
         result.error("NO_URL", "streamUrl required", null)
         return@setMethodCallHandler
     }
-    
-    // Start ScreenRecordingService with new URL (reuse saved permission)
+
+    // Update pending config with new URL
+    pendingStreamUrl = streamUrl
+    pendingStreamKey = call.argument<String>("streamKey") ?: pendingStreamKey
+    pendingAudio = call.argument<String>("audio") ?: pendingAudio ?: "false"
+
     try {
         val intent = Intent(context, ScreenRecordingService::class.java).apply {
-            putExtra("streamUrl", streamUrl)
-            putExtra("streamKey", call.argument<String>("streamKey") ?: "")
-            putExtra("audio", call.argument<String>("audio") ?: "false")
+            action = ScreenRecordingService.ACTION_START                          // ← FIX 1
+            putExtra(ScreenRecordingService.EXTRA_RESULT_CODE, savedProjectionResultCode)  // ← FIX 2
+            putExtra(ScreenRecordingService.EXTRA_DATA, savedProjectionData)               // ← FIX 3
+            putExtra(ScreenRecordingService.EXTRA_GAME_ID, pendingGameId ?: "recording")
+            putExtra(ScreenRecordingService.EXTRA_STREAM_URL, streamUrl)
+            putExtra("streamKey", pendingStreamKey)
+            putExtra("audio", pendingAudio)
+            putExtra("targetPackageName", pendingTargetPackage ?: "")
+            putExtra("streamTitle", pendingStreamTitle ?: "recording")
+            putExtra("playerId", pendingPlayerId ?: "")
+            putExtra("videoEnabled", pendingVideoEnabled ?: "false")
+            putExtra("playerName", pendingPlayerName ?: "")
+            putExtra("gameName", pendingGameName ?: "Recording")
+            putExtra("minimumStreamSpeed", pendingMinStreamSpeed ?: "1")
+            putExtra("badConnectionTimeout", pendingBadConnectionTimeout ?: "30")
         }
-        context?.startForegroundService(intent)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            context?.startForegroundService(intent)
+        } else {
+            context?.startService(intent)
+        }
         result.success(mapOf("success" to true))
     } catch (e: Exception) {
         result.error("STREAM_ERROR", e.message, null)
@@ -423,14 +446,25 @@ class GyroscopePlugin : FlutterPlugin, MethodCallHandler, ActivityAware,
                 }
 
                 // ── Stop Streaming ──
-                "stopStreaming" -> {
-                    try {
-                        context?.startService(Intent(context, ScreenRecordingService::class.java).apply {
-                            action = ScreenRecordingService.ACTION_STOP
-                        })
-                        result.success(null)
-                    } catch (e: Exception) { result.error("STOP_ERROR", e.message, null) }
-                }
+               // ── Stop Streaming ──
+"stopStreaming" -> {
+    try {
+        // 1. Stop recording service
+        context?.startService(Intent(context, ScreenRecordingService::class.java).apply {
+            action = ScreenRecordingService.ACTION_STOP
+        })
+        
+        // 2. Call stream ended API (if streamKey exists)
+        val streamKey = pendingStreamKey
+        if (!streamKey.isNullOrEmpty()) {
+            SantriqxSDK.endStream(streamKey) { res ->
+                Log.d(TAG, "Stream ended API: $res")
+            }
+        }
+        
+        result.success(null)
+    } catch (e: Exception) { result.error("STOP_ERROR", e.message, null) }
+}
 
                 "isStreaming" -> result.success(ScreenRecordingService.isRunning)
 
@@ -485,9 +519,11 @@ class GyroscopePlugin : FlutterPlugin, MethodCallHandler, ActivityAware,
                 resultCode = resultCode,
                 data = data,
                 onGranted = { code, projData ->
-                    Log.d(TAG, "✅ MediaProjection granted via SDK")
-                    startStreamingService(code, projData)
-                },
+    Log.d(TAG, "✅ MediaProjection granted via SDK")
+    savedProjectionResultCode = code        // ← ADD
+    savedProjectionData = projData          // ← ADD
+    startStreamingService(code, projData)
+},
                 onDenied = {
                     Log.e(TAG, "❌ MediaProjection denied")
                     pendingResult?.error("DENIED", "MediaProjection permission denied", null)
