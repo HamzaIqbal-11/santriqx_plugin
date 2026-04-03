@@ -137,9 +137,8 @@ private var savedProjectionData: Intent? = null
     val appId = call.argument<String>("appId") ?: ""
     val apiSecretKey = call.argument<String>("apiSecretKey") ?: ""
    
-    val orgId = call.argument<String>("organizationId") ?: ""
-    val prodId = call.argument<String>("productId") ?: ""
-    SantriqxSDK.init(appId, apiSecretKey, orgId, prodId)
+    
+    SantriqxSDK.init(appId, apiSecretKey)
     result.success(mapOf("success" to true,"baseUrl" to SantriqxSDK.baseUrl))
 }
 

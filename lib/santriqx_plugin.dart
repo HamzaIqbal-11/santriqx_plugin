@@ -259,15 +259,13 @@ class SantriqxSdk {
   static const MethodChannel _channel = MethodChannel('gyroscope_plugin/overlay');
 
   // ── Init (orgId/productId optional — config API se aayega) ──
-  static Future<Map> init({
-    required String appId,
-    required String apiSecretKey,
-    String organizationId = '',
-    String productId = '',
-  }) async => await _channel.invokeMethod('initSdk', {
-    'appId': appId, 'apiSecretKey': apiSecretKey,
-    'organizationId': organizationId, 'productId': productId,
-  });
+ static Future<Map> init({
+  required String appId,
+  required String apiSecretKey,
+}) async => await _channel.invokeMethod('initSdk', {
+  'appId': appId,
+  'apiSecretKey': apiSecretKey,
+});
 
   // ── Config ──
   static Future<Map> fetchConfig() async =>
