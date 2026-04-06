@@ -84,6 +84,7 @@ private var savedProjectionData: Intent? = null
         eventChannel = EventChannel(binding.binaryMessenger, "gyroscope_plugin/events")
        eventChannel.setStreamHandler(object : EventChannel.StreamHandler {
     override fun onListen(args: Any?, sink: EventChannel.EventSink?) {
+        Log.d(TAG, "🟢 EventChannel onListen — starting sensors") 
         eventSink = sink
          gyroscopeSDK?.start(
             samplingRate = android.hardware.SensorManager.SENSOR_DELAY_GAME,
