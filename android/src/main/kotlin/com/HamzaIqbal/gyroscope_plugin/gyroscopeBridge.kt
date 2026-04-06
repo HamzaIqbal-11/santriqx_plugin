@@ -39,20 +39,23 @@ class GyroscopeBridge(private val context: Context) {
                 val autoLog = call.argument<Boolean>("autoLog") ?: false
 
                 try {
-                    gyroscopeSDK.start(
-                        samplingRate = samplingRate,
-                        autoLog = autoLog,
-                        onData = { data ->
-                            // EventChannel se Flutter ko live data bhejo
-                            eventSink?.success(mapOf(
-                                "x"         to data.x.toDouble(),
-                                "y"         to data.y.toDouble(),
-                                "z"         to data.z.toDouble(),
-                                "timestamp" to data.timestampNs,
-                                "isIdle"    to data.isIdle
-                            ))
-                        }
-                    )
+                   gyroscopeSDK.start(
+    samplingRate = samplingRate,
+    autoLog = autoLog,
+    onData = { data ->
+        eventSink?.success(mapOf(
+            "x"  to data.x.toDouble(),
+            "y"  to data.y.toDouble(),
+            "z"  to data.z.toDouble(),
+            "ax" to data.ax.toDouble(),
+            "ay" to data.ay.toDouble(),
+            "az" to data.az.toDouble(),
+            "timestampNs" to data.timestampNs,
+            "isIdle" to data.isIdle,
+            "sessionId" to ""
+        ))
+    }
+)
                     result.success(null)
                 } catch (e: Exception) {
                     result.error("GYRO_START_ERROR", e.message, null)
