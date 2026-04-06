@@ -85,15 +85,25 @@ private var savedProjectionData: Intent? = null
        eventChannel.setStreamHandler(object : EventChannel.StreamHandler {
     override fun onListen(args: Any?, sink: EventChannel.EventSink?) {
         eventSink = sink
-        gyroscopeSDK?.setSensorListener { gx, gy, gz, ax, ay, az ->
-            sink?.success(mapOf(
-                "x" to gx, "y" to gy, "z" to gz,
-                "ax" to ax, "ay" to ay, "az" to az,
-                "timestampNs" to System.nanoTime(),
-                "isIdle" to false,
-                "sessionId" to ""
-            ))
-        }
+         gyroscopeSDK?.start(
+            samplingRate = android.hardware.SensorManager.SENSOR_DELAY_GAME,
+            autoLog = false,
+            onData = { data ->
+                sink?.success(mapOf(
+                    "x" to data.x.toDouble(),
+                    "y" to data.y.toDouble(),
+                    "z" to data.z.toDouble(),
+                    "ax" to data.ax.toDouble(),
+                    "ay" to data.ay.toDouble(),
+                    "az" to data.az.toDouble(),
+                    "timestampNs" to data.timestampNs,
+                    "isIdle" to data.isIdle,
+                    "sessionId" to ""
+                ))
+            }
+        )
+       
+        
     }
     override fun onCancel(args: Any?) {
         eventSink = null
