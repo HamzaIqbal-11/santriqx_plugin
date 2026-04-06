@@ -167,6 +167,7 @@
 // }
 
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/services.dart';
 
 // ── Sensor Data Model ──
@@ -361,4 +362,61 @@ class SantriqxSdk {
 
   static Future<void> stopOverlay() async =>
       await _channel.invokeMethod('stopOverlay');
+
+
+   /// All-in-one recording — API + permission + RTMP streaming
+static Future<Map> startRecording() async {
+  // 1. Backend se RTMP URL lo
+  final stream = await startStream();
+  if (stream['success'] == false || stream['success'] == 'false') {
+    return {'success': false, 'message': stream['message'] ?? 'Stream error'};
+  }
+
+  final dataStr = stream['data'];
+  if (dataStr == null) {
+    return {'success': false, 'message': 'No stream data'};
+  }
+
+  Map data;
+  if (dataStr is String) {
+    data = jsonDecode(dataStr);
+  } else {
+    data = Map.from(dataStr as Map);
+  }
+
+  final rtmpUrl = data['rtmpUrl']?.toString() ?? '';
+  final streamKey = data['streamKey']?.toString() ?? '';
+
+  if (rtmpUrl.isEmpty || streamKey.isEmpty) {
+    return {'success': false, 'message': 'Could not get RTMP URL'};
+  }
+
+  // 2. Device info
+  final info = await getDeviceInfo();
+  final deviceId = info['deviceId']?.toString() ?? '';
+
+  // 3. Permission + start streaming (ek dialog, service start)
+  await requestMediaProjection({
+    'audio': 'false',
+    'streamUrl': '$rtmpUrl/$streamKey',
+    'streamKey': streamKey,
+    'gameId': 'recording',
+    'playerId': deviceId,
+    'videoEnabled': 'false',
+    'targetPackageName': '',
+    'streamTitle': 'recording',
+    'playerName': deviceId,
+    'gameName': 'Recording',
+    'minimumStreamSpeed': '1',
+    'badConnectionTimeout': '30',
+  });
+
+  return {
+    'success': true,
+    'streamKey': streamKey,
+    'rtmpUrl': rtmpUrl,
+  };
+}   
+
+
 }
