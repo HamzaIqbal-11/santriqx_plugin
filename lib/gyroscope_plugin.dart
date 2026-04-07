@@ -171,17 +171,17 @@ import 'dart:convert';
 import 'package:flutter/services.dart';
 
 // ── Sensor Data Model ──
-class GyroData {
+class GyroAndAccelData {
   final double x, y, z;
   final double ax, ay, az;
   final int timestampNs;
   final bool isIdle;
   final String sessionId;
 
-  GyroData({this.x=0, this.y=0, this.z=0, this.ax=0, this.ay=0, this.az=0,
+  GyroAndAccelData({this.x=0, this.y=0, this.z=0, this.ax=0, this.ay=0, this.az=0,
     this.timestampNs=0, this.isIdle=false, this.sessionId=''});
 
-  factory GyroData.fromMap(Map<String, dynamic> m) => GyroData(
+  factory GyroAndAccelData.fromMap(Map<String, dynamic> m) => GyroAndAccelData(
     x: (m['x'] ?? 0).toDouble(), y: (m['y'] ?? 0).toDouble(), z: (m['z'] ?? 0).toDouble(),
     ax: (m['ax'] ?? 0).toDouble(), ay: (m['ay'] ?? 0).toDouble(), az: (m['az'] ?? 0).toDouble(),
     timestampNs: m['timestampNs'] ?? 0, isIdle: m['isIdle'] ?? false, sessionId: m['sessionId'] ?? '',
@@ -205,12 +205,12 @@ class GyroSamplingRate {
 }
 
 // ── Sensor Plugin Class ──
-class GyroscopePlugin {
+class SensorPlugin {
   static const MethodChannel _methodChannel = MethodChannel('gyroscope_plugin/methods');
   static const EventChannel _eventChannel = EventChannel('gyroscope_plugin/events');
 
-  final _gyroController = StreamController<GyroData>.broadcast();
-  Stream<GyroData> get gyroStream => _gyroController.stream;
+  final _gyroController = StreamController<GyroAndAccelData>.broadcast();
+  Stream<GyroAndAccelData> get gyroStream => _gyroController.stream;
 
   Future<bool> hasGyroscope() async {
     final r = await _methodChannel.invokeMethod<bool>('hasGyroscope');
@@ -221,7 +221,7 @@ class GyroscopePlugin {
     required String gameId,
     int samplingRate = GyroSamplingRate.game,
     bool autoLog = false,
-    Function(GyroData)? onData,
+    Function(GyroAndAccelData)? onData,
     Function(SessionInfo)? onSessionStart,
     Function(SessionInfo)? onSessionStop,
     Function(PhoneState, String)? onPhoneState,
@@ -232,7 +232,7 @@ class GyroscopePlugin {
 
     _eventChannel.receiveBroadcastStream().listen((event) {
       final map = Map<String, dynamic>.from(event);
-      final data = GyroData.fromMap(map);
+      final data = GyroAndAccelData.fromMap(map);
       _gyroController.add(data);
       onData?.call(data);
     });
