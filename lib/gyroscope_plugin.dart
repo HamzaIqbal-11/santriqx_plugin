@@ -168,6 +168,7 @@
 
 import 'dart:async';
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
 // ── Sensor Data Model ──
@@ -368,6 +369,7 @@ class SantriqxSdk {
 static Future<Map> startRecording() async {
   // 1. Backend se RTMP URL lo
   final stream = await startStream();
+  debugPrint("Strea $stream");
   if (stream['success'] == false || stream['success'] == 'false') {
     return {'success': false, 'message': stream['message'] ?? 'Stream error'};
   }
