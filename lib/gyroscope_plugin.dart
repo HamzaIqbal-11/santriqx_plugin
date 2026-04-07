@@ -398,20 +398,7 @@ static Future<Map> startRecording() async {
   final deviceId = info['deviceId']?.toString() ?? '';
 
   // 3. Permission + start streaming (ek dialog, service start)
-  await requestMediaProjection({
-    'audio': 'false',
-    'streamUrl': '$rtmpUrl/$streamKey',
-    'streamKey': streamKey,
-    'gameId': 'recording',
-    'playerId': deviceId,
-    'videoEnabled': 'false',
-    'targetPackageName': '',
-    'streamTitle': 'recording',
-    'playerName': deviceId,
-    'gameName': 'Recording',
-    'minimumStreamSpeed': '1',
-    'badConnectionTimeout': '30',
-  });  try {
+   try {
     await requestMediaProjection({
       'audio': 'false',
       'streamUrl': '$rtmpUrl/$streamKey',
