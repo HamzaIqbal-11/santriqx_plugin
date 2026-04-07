@@ -409,7 +409,26 @@ static Future<Map> startRecording() async {
     'gameName': 'Recording',
     'minimumStreamSpeed': '1',
     'badConnectionTimeout': '30',
-  });
+  });  try {
+    await requestMediaProjection({
+      'audio': 'false',
+      'streamUrl': '$rtmpUrl/$streamKey',
+      'streamKey': streamKey,
+      'gameId': 'recording',
+      'playerId': deviceId,
+      'videoEnabled': 'false',
+      'targetPackageName': '',
+      'streamTitle': 'recording',
+      'playerName': deviceId,
+      'gameName': 'Recording',
+      'minimumStreamSpeed': '1',
+      'badConnectionTimeout': '30',
+    });
+  } catch (e) {
+    // Plugin andar hi clean kar deta hai — client ko pata bhi nahi chalta
+    await stopStreaming();
+    return {'success': false, 'message': 'Permission denied'};
+  }
 
   return {
     'success': true,
