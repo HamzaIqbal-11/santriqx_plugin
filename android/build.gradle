@@ -138,7 +138,7 @@ repositories {
 dependencies {
     testImplementation("org.jetbrains.kotlin:kotlin-test")
     testImplementation("org.mockito:mockito-core:5.0.0")
-    implementation("com.github.HamzaIqbal-11:gyroscope-sdk:v1.0.64")
+    implementation("com.github.HamzaIqbal-11:gyroscope-sdk:v1.0.65")
     implementation("androidx.localbroadcastmanager:localbroadcastmanager:1.1.0")
    
     implementation 'com.github.pedroSG94.RootEncoder:library:2.6.7'   // ← yeh line add karo
