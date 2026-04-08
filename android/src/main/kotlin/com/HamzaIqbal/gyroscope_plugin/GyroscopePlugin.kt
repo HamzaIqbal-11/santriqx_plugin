@@ -457,7 +457,7 @@ private var savedProjectionData: Intent? = null
         val streamKey = pendingStreamKey
         if (!streamKey.isNullOrEmpty()) {
             SantriqxSDK.endStream(streamKey) { res ->
-                Log.d(TAG, "Stream ended API: $res")
+                 
             }
         }
         
