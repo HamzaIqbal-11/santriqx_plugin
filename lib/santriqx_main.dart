@@ -98,9 +98,12 @@ class SantriqxSdk {
  static Future<Map> init({
   required String appId,
   required String apiSecretKey,
+  String? baseUrl,
 }) async => await _channel.invokeMethod('initSdk', {
   'appId': appId,
   'apiSecretKey': apiSecretKey,
+  'baseUrl': baseUrl ?? '',
+
 });
 
   // ── Config ──
