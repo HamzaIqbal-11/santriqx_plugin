@@ -71,7 +71,7 @@
 #   # For details regarding fonts in packages, see
 #   # https://flutter.dev/to/font-from-package
 
-name: gyroscope_plugin
+name: santriqx_plugin
 description: Sentriqx SDK Flutter Plugin
 version: 1.0.0
 homepage: https://github.com/HamzaIqbal-11/santriqx_plugin
