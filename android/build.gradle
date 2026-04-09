@@ -134,13 +134,24 @@ repositories {
     google()
     mavenCentral()
     maven { url = uri("https://jitpack.io") }
+    maven {
+            url "https://gitlab.com/api/v4/projects/81120461/packages/maven"
+            credentials(HttpHeaderCredentials) {
+                name = "Deploy-Token"
+                value = "gldt-EX38JE9vrPLKU89eWbtL"
+            }
+            authentication {
+                header(HttpHeaderAuthentication)
+            }
+        }
 }
 
 dependencies {
     testImplementation("org.jetbrains.kotlin:kotlin-test")
     testImplementation("org.mockito:mockito-core:5.0.0")
     //implementation(fileTree(dir: 'libs', include: ['*.aar']))
-    implementation("com.github.HamzaIqbal-11:gyroscope-sdk:v1.0.74")
+   // implementation("com.github.HamzaIqbal-11:gyroscope-sdk:v1.0.74")
+   implementation("com.earnscape:gyroscope-sdk:1.0.0")
     implementation("androidx.localbroadcastmanager:localbroadcastmanager:1.1.0")
    
     implementation 'com.github.pedroSG94.RootEncoder:library:2.6.7'   // ← yeh line add karo
