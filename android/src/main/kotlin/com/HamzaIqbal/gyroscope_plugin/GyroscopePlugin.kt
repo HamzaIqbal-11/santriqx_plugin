@@ -138,7 +138,7 @@ private var savedProjectionData: Intent? = null
     val apiSecretKey = call.argument<String>("apiSecretKey") ?: ""
     val baseUrl = call.argument<String>("baseUrl") ?: ""  // ← naya
    
-    SantriqxSDK.init(appId, apiSecretKey)
+    SantriqxSDK.init(appId, apiSecretKey,baseUrl)
     result.success(mapOf("success" to true,"baseUrl" to SantriqxSDK.baseUrl))
 }
 
