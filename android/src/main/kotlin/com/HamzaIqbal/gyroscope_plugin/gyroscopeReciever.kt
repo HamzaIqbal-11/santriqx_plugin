@@ -11,16 +11,10 @@ import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.earnscape.gyroscopesdk.StreamingSDK
 import io.flutter.plugin.common.MethodChannel
 
-/**
- * GyroscopeReceiver
- * LocalBroadcast receive karo, Flutter ko notify karo
- * Now includes accelerometer data (ax, ay, az)
- */
 class GyroscopeReceiver(private val methodChannel: MethodChannel) {
 
     private fun ui(action: () -> Unit) = Handler(Looper.getMainLooper()).post(action)
 
-    // ── Gyro + Accel Data ─────────────────────────────────────────────────────
     private val gyroDataReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             if (intent?.action != StreamingSDK.ACTION_GYRO_DATA) return
@@ -33,7 +27,6 @@ class GyroscopeReceiver(private val methodChannel: MethodChannel) {
                     "sessionId"   to (intent.getStringExtra("sessionId") ?: ""),
                     "gameId"      to (intent.getStringExtra("gameId") ?: ""),
                     "isIdle"      to intent.getBooleanExtra("isIdle", false),
-                    // Accelerometer
                     "ax"          to intent.getFloatExtra("ax", 0f).toDouble(),
                     "ay"          to intent.getFloatExtra("ay", 0f).toDouble(),
                     "az"          to intent.getFloatExtra("az", 0f).toDouble()
@@ -42,11 +35,9 @@ class GyroscopeReceiver(private val methodChannel: MethodChannel) {
         }
     }
 
-    // ── Phone Idle ────────────────────────────────────────────────────────────
     private val gyroIdleReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             if (intent?.action != StreamingSDK.ACTION_GYRO_IDLE) return
-            Log.d("GyroscopeReceiver", "Phone idle")
             ui {
                 methodChannel.invokeMethod("onGyroIdle", mapOf(
                     "sessionId"   to (intent.getStringExtra("sessionId") ?: ""),
@@ -56,11 +47,9 @@ class GyroscopeReceiver(private val methodChannel: MethodChannel) {
         }
     }
 
-    // ── Phone Active ──────────────────────────────────────────────────────────
     private val gyroActiveReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             if (intent?.action != StreamingSDK.ACTION_GYRO_ACTIVE) return
-            Log.d("GyroscopeReceiver", "Phone active")
             ui {
                 methodChannel.invokeMethod("onGyroActive", mapOf(
                     "sessionId"   to (intent.getStringExtra("sessionId") ?: ""),
@@ -70,11 +59,9 @@ class GyroscopeReceiver(private val methodChannel: MethodChannel) {
         }
     }
 
-    // ── Session Started ───────────────────────────────────────────────────────
     private val sessionStartedReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             if (intent?.action != StreamingSDK.ACTION_SESSION_STARTED) return
-            Log.d("GyroscopeReceiver", "Session started: ${intent.getStringExtra("sessionId")}")
             ui {
                 methodChannel.invokeMethod("onSessionStarted", mapOf(
                     "sessionId"   to (intent.getStringExtra("sessionId") ?: ""),
@@ -85,11 +72,9 @@ class GyroscopeReceiver(private val methodChannel: MethodChannel) {
         }
     }
 
-    // ── Session Stopped ───────────────────────────────────────────────────────
     private val sessionStoppedReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             if (intent?.action != StreamingSDK.ACTION_SESSION_STOPPED) return
-            Log.d("GyroscopeReceiver", "Session stopped: ${intent.getStringExtra("sessionId")}")
             ui {
                 methodChannel.invokeMethod("onSessionStopped", mapOf(
                     "sessionId"     to (intent.getStringExtra("sessionId") ?: ""),
@@ -103,7 +88,6 @@ class GyroscopeReceiver(private val methodChannel: MethodChannel) {
         }
     }
 
-    // ── Register / Unregister ─────────────────────────────────────────────────
     fun registerReceivers(context: Context) {
         val lbm = LocalBroadcastManager.getInstance(context)
         lbm.registerReceiver(gyroDataReceiver,       IntentFilter(StreamingSDK.ACTION_GYRO_DATA))

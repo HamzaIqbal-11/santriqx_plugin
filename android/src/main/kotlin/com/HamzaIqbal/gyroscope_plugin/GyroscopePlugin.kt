@@ -1,4 +1,4 @@
-package com.HamzaIqbal.gyroscope_plugin
+ package com.HamzaIqbal.gyroscope_plugin
 
 import android.app.Activity
 import android.content.Context
@@ -10,6 +10,7 @@ import com.earnscape.gyroscopesdk.SantriqxSDK
 import com.earnscape.gyroscopesdk.TransactionService
 import com.earnscape.gyroscopesdk.DeviceService
 import com.earnscape.gyroscopesdk.ScreenRecordingService
+
 import com.example.gyroscope.kyc.FaceRecognitionActivity
 import com.example.gyroscope.kyc.KycActivity
 import io.flutter.embedding.engine.plugins.FlutterPlugin
@@ -69,9 +70,45 @@ class GyroscopePlugin : FlutterPlugin, MethodCallHandler, ActivityAware,
         overlayChannel.setMethodCallHandler { call, result ->
             when (call.method) {
 
-                
+                // ── Overlay Permission ──
+                "checkOverlayPermission" -> {
+                    val has = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M)
+                        android.provider.Settings.canDrawOverlays(context) else true
+                    result.success(has)
+                }
 
-              
+                "requestOverlayPermission" -> {
+                    context?.let { ctx ->
+                        try {
+                            val intent = Intent(
+                                android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                                android.net.Uri.parse("package:${ctx.packageName}")
+                            ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            ctx.startActivity(intent)
+                            result.success(null)
+                        } catch (e: Exception) { result.error("OVERLAY_ERROR", e.message, null) }
+                    } ?: result.error("OVERLAY_ERROR", "Context is null", null)
+                }
+
+                "startOverlay" -> {
+                    try {
+                        val intent = Intent(context, StreamingOverlayService::class.java).apply {
+                            action = StreamingOverlayService.ACTION_START
+                            putExtra("startTimeMs", call.argument<Long>("startTimeMs") ?: System.currentTimeMillis())
+                        }
+                        context?.startService(intent)
+                        result.success(null)
+                    } catch (e: Exception) { result.error("OVERLAY_ERROR", e.message, null) }
+                }
+
+                "stopOverlay" -> {
+                    try {
+                        context?.startService(Intent(context, StreamingOverlayService::class.java).apply {
+                            action = StreamingOverlayService.ACTION_STOP
+                        })
+                        result.success(null)
+                    } catch (e: Exception) { result.error("OVERLAY_ERROR", e.message, null) }
+                }
 
                 // ── SDK Init ──
                 "initSdk" -> {
