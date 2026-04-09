@@ -38,8 +38,7 @@ class GyroscopePlugin : FlutterPlugin, MethodCallHandler, ActivityAware,
 
     private var gyroscopeSDK: GyroscopeSDK? = null
     private var gyroscopeBridge: GyroscopeBridge? = null
-    private var streamingBridge: StreamingBridge? = null
-    private var gyroscopeReceiver: GyroscopeReceiver? = null
+    
     private var context: Context? = null
 
     private var activity: Activity? = null
@@ -327,8 +326,7 @@ class GyroscopePlugin : FlutterPlugin, MethodCallHandler, ActivityAware,
             }
         }
 
-        gyroscopeReceiver = GyroscopeReceiver(methodChannel)
-        gyroscopeReceiver?.registerReceivers(binding.applicationContext)
+       
     }
 
     // ── Activity Results ─────────────────────────────────────────────────────
@@ -402,7 +400,7 @@ class GyroscopePlugin : FlutterPlugin, MethodCallHandler, ActivityAware,
         when (call.method) {
             "start", "stop", "hasGyroscope", "isGyroActive" ->
                 gyroscopeBridge?.handleMethodCall(call, result) ?: result.error("NOT_INIT", "GyroscopeBridge not ready", null)
-            "startSession", "stopSession", "isSessionActive", "getSessionId", "getBufferedReadings" ->
+               
                 streamingBridge?.handleMethodCall(call, result) ?: result.error("NOT_INIT", "StreamingBridge not ready", null)
             else -> result.notImplemented()
         }
@@ -428,8 +426,8 @@ class GyroscopePlugin : FlutterPlugin, MethodCallHandler, ActivityAware,
 
     override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) {
         methodChannel.setMethodCallHandler(null); overlayChannel.setMethodCallHandler(null)
-        gyroscopeBridge?.dispose(); streamingBridge?.dispose()
-        gyroscopeReceiver?.unregisterReceivers(binding.applicationContext)
+        gyroscopeBridge?.dispose();  
+        
         gyroscopeReceiver = null; gyroscopeBridge = null; streamingBridge = null
         gyroscopeSDK = null; context = null
     }
