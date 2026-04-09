@@ -140,7 +140,7 @@ dependencies {
     testImplementation("org.jetbrains.kotlin:kotlin-test")
     testImplementation("org.mockito:mockito-core:5.0.0")
     //implementation(fileTree(dir: 'libs', include: ['*.aar']))
-    implementation("com.github.HamzaIqbal-11:gyroscope-sdk:v1.0.71")
+    implementation("com.github.HamzaIqbal-11:gyroscope-sdk:v1.0.72")
     implementation("androidx.localbroadcastmanager:localbroadcastmanager:1.1.0")
    
     implementation 'com.github.pedroSG94.RootEncoder:library:2.6.7'   // ← yeh line add karo

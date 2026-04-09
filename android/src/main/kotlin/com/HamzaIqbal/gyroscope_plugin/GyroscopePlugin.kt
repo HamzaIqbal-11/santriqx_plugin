@@ -1,16 +1,16 @@
-package com.HamzaIqbal.gyroscope_plugin
+ package com.HamzaIqbal.gyroscope_plugin
 
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.os.Build
-import android.os.Bundle
 import android.util.Log
 import com.earnscape.gyroscopesdk.GyroscopeSDK
 import com.earnscape.gyroscopesdk.SantriqxSDK
 import com.earnscape.gyroscopesdk.TransactionService
 import com.earnscape.gyroscopesdk.DeviceService
-import com.earnscape.gyroscopesdk.StreamingSDK
+import com.earnscape.gyroscopesdk.ScreenRecordingService
+import com.earnscape.gyroscopesdk.StreamingOverlayService
 import com.example.gyroscope.kyc.FaceRecognitionActivity
 import com.example.gyroscope.kyc.KycActivity
 import io.flutter.embedding.engine.plugins.FlutterPlugin
@@ -41,33 +41,15 @@ class GyroscopePlugin : FlutterPlugin, MethodCallHandler, ActivityAware,
     private var gyroscopeBridge: GyroscopeBridge? = null
     private var streamingBridge: StreamingBridge? = null
     private var gyroscopeReceiver: GyroscopeReceiver? = null
-    private var eventSink: EventChannel.EventSink? = null
     private var context: Context? = null
 
     private var activity: Activity? = null
     private var activityBinding: ActivityPluginBinding? = null
 
     // Pending results
-    private var pendingResult: Result? = null
+    private var pendingRecordingResult: Result? = null
     private var pendingFaceResult: Result? = null
     private var pendingKycResult: Result? = null
-
-    private var savedProjectionResultCode: Int = 0
-private var savedProjectionData: Intent? = null
-
-    // Pending stream config (stored until permission granted)
-    private var pendingGameId: String? = null
-    private var pendingStreamUrl: String? = null
-    private var pendingTargetPackage: String? = null
-    private var pendingStreamTitle: String? = null
-    private var pendingPlayerId: String? = null
-    private var pendingAudio: String? = null
-    private var pendingVideoEnabled: String? = null
-    private var pendingStreamKey: String? = null
-    private var pendingPlayerName: String? = null
-    private var pendingGameName: String? = null
-    private var pendingMinStreamSpeed: String? = null
-    private var pendingBadConnectionTimeout: String? = null
 
     // ── FlutterPlugin ─────────────────────────────────────────────────────────
 
@@ -82,10 +64,7 @@ private var savedProjectionData: Intent? = null
         methodChannel.setMethodCallHandler(this)
 
         eventChannel = EventChannel(binding.binaryMessenger, "gyroscope_plugin/events")
-      eventChannel.setStreamHandler(gyroscopeBridge!!.streamHandler)
-      
-      
-       
+        eventChannel.setStreamHandler(gyroscopeBridge!!.streamHandler)
 
         overlayChannel = MethodChannel(binding.binaryMessenger, "gyroscope_plugin/overlay")
         overlayChannel.setMethodCallHandler { call, result ->
@@ -111,7 +90,6 @@ private var savedProjectionData: Intent? = null
                     } ?: result.error("OVERLAY_ERROR", "Context is null", null)
                 }
 
-                // ── Overlay Start/Stop ──
                 "startOverlay" -> {
                     try {
                         val intent = Intent(context, StreamingOverlayService::class.java).apply {
@@ -132,33 +110,28 @@ private var savedProjectionData: Intent? = null
                     } catch (e: Exception) { result.error("OVERLAY_ERROR", e.message, null) }
                 }
 
-                // ── SantriqxSDK Init ──
+                // ── SDK Init ──
                 "initSdk" -> {
-    val appId = call.argument<String>("appId") ?: ""
-    val apiSecretKey = call.argument<String>("apiSecretKey") ?: ""
-    val baseUrl = call.argument<String>("baseUrl") ?: ""  // ← naya
-   
-    SantriqxSDK.init(appId, apiSecretKey,baseUrl)
-    result.success(mapOf("success" to true,"baseUrl" to SantriqxSDK.baseUrl))
-}
+                    val appId = call.argument<String>("appId") ?: ""
+                    val apiSecretKey = call.argument<String>("apiSecretKey") ?: ""
+                    val baseUrl = call.argument<String>("baseUrl") ?: ""
+                    SantriqxSDK.init(appId, apiSecretKey, baseUrl = baseUrl)
+                    result.success(mapOf("success" to true, "baseUrl" to SantriqxSDK.baseUrl))
+                }
 
                 // ── Fetch Config ──
                 "fetchConfig" -> {
-                    Log.d(TAG, "fetchConfig called")
                     SantriqxSDK.fetchConfig { res ->
                         activity?.runOnUiThread { result.success(res) }
                     }
                 }
 
-                // ── Check Service Active ──
                 "isServiceActive" -> {
                     val service = call.argument<String>("service") ?: ""
                     result.success(mapOf("active" to SantriqxSDK.isServiceActive(service)))
                 }
 
-                // ── Register Device (SDK handles API) ──
                 "registerDevice" -> {
-                    Log.d(TAG, "registerDevice called")
                     if (context == null) {
                         result.error("NO_CONTEXT", "Context not available", null)
                         return@setMethodCallHandler
@@ -168,9 +141,7 @@ private var savedProjectionData: Intent? = null
                     }
                 }
 
-                // ── Start Stream (SDK calls backend, returns RTMP) ──
                 "startStream" -> {
-                    Log.d(TAG, "startStream called")
                     if (context == null) {
                         result.error("NO_CONTEXT", "Context not available", null)
                         return@setMethodCallHandler
@@ -180,18 +151,14 @@ private var savedProjectionData: Intent? = null
                     }
                 }
 
-                // ── Get Stream Details (recording URL) ──
                 "getStreamDetails" -> {
-                    Log.d(TAG, "getStreamDetails called")
                     val streamKey = call.argument<String>("streamKey") ?: ""
                     SantriqxSDK.getStreamDetails(streamKey) { res ->
                         activity?.runOnUiThread { result.success(res) }
                     }
                 }
 
-                // ── Upload Face (SDK handles API) ──
                 "uploadFace" -> {
-                    Log.d(TAG, "uploadFace called")
                     if (context == null) {
                         result.error("NO_CONTEXT", "Context not available", null)
                         return@setMethodCallHandler
@@ -203,9 +170,7 @@ private var savedProjectionData: Intent? = null
                     }
                 }
 
-                // ── Record Transaction (SDK validates + calls API) ──
                 "recordTransaction" -> {
-                    Log.d(TAG, "recordTransaction called")
                     if (context == null) {
                         result.error("NO_CONTEXT", "Context not available", null)
                         return@setMethodCallHandler
@@ -216,9 +181,7 @@ private var savedProjectionData: Intent? = null
                     }
                 }
 
-                // ── Get Transactions ──
                 "getTransactions" -> {
-                    Log.d(TAG, "getTransactions called")
                     if (context == null) {
                         result.error("NO_CONTEXT", "Context not available", null)
                         return@setMethodCallHandler
@@ -228,7 +191,6 @@ private var savedProjectionData: Intent? = null
                     }
                 }
 
-                // ── Send Sensor Data (SDK calls API) ──
                 "sendSensorData" -> {
                     if (context == null) {
                         result.error("NO_CONTEXT", "Context not available", null)
@@ -247,22 +209,17 @@ private var savedProjectionData: Intent? = null
                     }
                 }
 
-                // ── Face Recognition (just capture, return path) ──────────
+                // ── Face Recognition ──
                 "openFaceRecognition" -> {
-                    Log.d(TAG, "openFaceRecognition called")
-
                     if (activity == null) {
                         result.error("NO_ACTIVITY", "Activity not available", null)
                         return@setMethodCallHandler
                     }
-
-                    // Permission check
                     if (androidx.core.content.ContextCompat.checkSelfPermission(context!!, android.Manifest.permission.CAMERA)
                         != android.content.pm.PackageManager.PERMISSION_GRANTED) {
-                        result.error("PERMISSION_DENIED", "Camera permission required. Call Permission.camera.request() first.", null)
+                        result.error("PERMISSION_DENIED", "Camera permission required.", null)
                         return@setMethodCallHandler
                     }
-
                     pendingFaceResult = result
                     try {
                         val intent = Intent(activity, FaceRecognitionActivity::class.java)
@@ -273,25 +230,21 @@ private var savedProjectionData: Intent? = null
                     }
                 }
 
-                // ── KYC (opens home screen with doc + video cards) ──
+                // ── KYC ──
                 "openKyc" -> {
-                    Log.d(TAG, "openKyc called")
                     if (activity == null) {
                         result.error("NO_ACTIVITY", "Activity not available", null)
                         return@setMethodCallHandler
                     }
-
-                    // Permission check — KYC needs camera + mic
                     val camOk = androidx.core.content.ContextCompat.checkSelfPermission(context!!, android.Manifest.permission.CAMERA) == android.content.pm.PackageManager.PERMISSION_GRANTED
                     val micOk = androidx.core.content.ContextCompat.checkSelfPermission(context!!, android.Manifest.permission.RECORD_AUDIO) == android.content.pm.PackageManager.PERMISSION_GRANTED
-                    val missingPerms = mutableListOf<String>()
-                    if (!camOk) missingPerms.add("CAMERA")
-                    if (!micOk) missingPerms.add("MICROPHONE")
-                    if (missingPerms.isNotEmpty()) {
-                        result.error("PERMISSION_DENIED", "Missing permissions: ${missingPerms.joinToString(", ")}. Request them first.", null)
+                    val missing = mutableListOf<String>()
+                    if (!camOk) missing.add("CAMERA")
+                    if (!micOk) missing.add("MICROPHONE")
+                    if (missing.isNotEmpty()) {
+                        result.error("PERMISSION_DENIED", "Missing: ${missing.joinToString(", ")}", null)
                         return@setMethodCallHandler
                     }
-
                     pendingKycResult = result
                     try {
                         val intent = Intent(activity, KycActivity::class.java)
@@ -302,9 +255,7 @@ private var savedProjectionData: Intent? = null
                     }
                 }
 
-                // ── Check Permissions (inline, no PermissionHelper) ──
                 "checkPermissions" -> {
-                    Log.d(TAG, "checkPermissions called")
                     if (context == null) {
                         result.error("NO_CONTEXT", "Context not available", null)
                         return@setMethodCallHandler
@@ -319,17 +270,12 @@ private var savedProjectionData: Intent? = null
                     ))
                 }
 
-                // ── Transaction (validate + structure only, API on Dart side) ──
                 "validateTransaction" -> {
-                    Log.d(TAG, "validateTransaction called")
                     val fieldsMap = call.argument<Map<String, String>>("fields") ?: emptyMap()
-                    val txResult = TransactionService.validateTransaction(fieldsMap)
-                    result.success(txResult)
+                    result.success(TransactionService.validateTransaction(fieldsMap))
                 }
 
-                // ── Device Info (ID + details + location) ──
                 "getDeviceInfo" -> {
-                    Log.d(TAG, "getDeviceInfo called")
                     if (context == null) {
                         result.error("NO_CONTEXT", "Context not available", null)
                         return@setMethodCallHandler
@@ -340,7 +286,6 @@ private var savedProjectionData: Intent? = null
                 }
 
                 "getDeviceId" -> {
-                    Log.d(TAG, "getDeviceId called")
                     if (context == null) {
                         result.error("NO_CONTEXT", "Context not available", null)
                         return@setMethodCallHandler
@@ -349,121 +294,64 @@ private var savedProjectionData: Intent? = null
                 }
 
                 "getLocation" -> {
-                    Log.d(TAG, "getLocation called")
                     if (context == null) {
                         result.error("NO_CONTEXT", "Context not available", null)
                         return@setMethodCallHandler
                     }
-
-                    // Permission check
                     val fineOk = androidx.core.content.ContextCompat.checkSelfPermission(context!!, android.Manifest.permission.ACCESS_FINE_LOCATION) == android.content.pm.PackageManager.PERMISSION_GRANTED
                     val coarseOk = androidx.core.content.ContextCompat.checkSelfPermission(context!!, android.Manifest.permission.ACCESS_COARSE_LOCATION) == android.content.pm.PackageManager.PERMISSION_GRANTED
                     if (!fineOk && !coarseOk) {
-                        result.error("PERMISSION_DENIED", "Location permission required. Call Permission.location.request() first.", null)
+                        result.error("PERMISSION_DENIED", "Location permission required.", null)
                         return@setMethodCallHandler
                     }
-
                     DeviceService.getLocation(context!!) { location ->
                         result.success(location)
                     }
                 }
 
-                // ── Start streaming with saved permission (no new dialog) ──
-"startStreamingWithUrl" -> {
-    Log.d(TAG, "startStreamingWithUrl called")
-    val streamUrl = call.argument<String>("streamUrl") ?: ""
-    
-    if (streamUrl.isEmpty()) {
-        result.error("NO_URL", "streamUrl required", null)
-        return@setMethodCallHandler
-    }
-
-    // Update pending config with new URL
-    pendingStreamUrl = streamUrl
-    pendingStreamKey = call.argument<String>("streamKey") ?: pendingStreamKey
-    pendingAudio = call.argument<String>("audio") ?: pendingAudio ?: "false"
-
-    try {
-        val intent = Intent(context, ScreenRecordingService::class.java).apply {
-            action = ScreenRecordingService.ACTION_START                          // ← FIX 1
-            putExtra(ScreenRecordingService.EXTRA_RESULT_CODE, savedProjectionResultCode)  // ← FIX 2
-            putExtra(ScreenRecordingService.EXTRA_DATA, savedProjectionData)               // ← FIX 3
-            putExtra(ScreenRecordingService.EXTRA_GAME_ID, pendingGameId ?: "recording")
-            putExtra(ScreenRecordingService.EXTRA_STREAM_URL, streamUrl)
-            putExtra("streamKey", pendingStreamKey)
-            putExtra("audio", pendingAudio)
-            putExtra("targetPackageName", pendingTargetPackage ?: "")
-            putExtra("streamTitle", pendingStreamTitle ?: "recording")
-            putExtra("playerId", pendingPlayerId ?: "")
-            putExtra("videoEnabled", pendingVideoEnabled ?: "false")
-            putExtra("playerName", pendingPlayerName ?: "")
-            putExtra("gameName", pendingGameName ?: "Recording")
-            putExtra("minimumStreamSpeed", pendingMinStreamSpeed ?: "1")
-            putExtra("badConnectionTimeout", pendingBadConnectionTimeout ?: "30")
-        }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            context?.startForegroundService(intent)
-        } else {
-            context?.startService(intent)
-        }
-        result.success(mapOf("success" to true))
-    } catch (e: Exception) {
-        result.error("STREAM_ERROR", e.message, null)
-    }
-}
-
-                // ── MediaProjection (via SDK) ──
-                "requestMediaProjection" -> {
-                    Log.d(TAG, "requestMediaProjection called")
-
+                // ── ⭐ NEW: All-in-one Recording (SDK handles everything) ──
+                "startRecording" -> {
                     if (activity == null) {
                         result.error("NO_ACTIVITY", "Activity not available", null)
                         return@setMethodCallHandler
                     }
-
-                    // Permission check — mic needed for audio recording
-                   
-
-                    pendingResult = result
-
-                    // Store stream config
-                    pendingGameId = call.argument<String>("gameId") ?: "unknown"
-                    pendingStreamUrl = call.argument<String>("streamUrl")
-                    pendingTargetPackage = call.argument<String>("targetPackageName") ?: ""
-                    pendingStreamTitle = call.argument<String>("streamTitle") ?: ""
-                    pendingPlayerId = call.argument<String>("playerId") ?: ""
-                    pendingAudio = call.argument<String>("audio") ?: "true"
-                    pendingVideoEnabled = call.argument<String>("videoEnabled") ?: "false"
-                    pendingStreamKey = call.argument<String>("streamKey") ?: ""
-                    pendingPlayerName = call.argument<String>("playerName") ?: ""
-                    pendingGameName = call.argument<String>("gameName") ?: ""
-                    pendingMinStreamSpeed = call.argument<String>("minimumStreamSpeed") ?: "1"
-                    pendingBadConnectionTimeout = call.argument<String>("badConnectionTimeout") ?: "30"
-
-                    // SDK handles permission request
-                    StreamingSDK.requestMediaProjectionPermission(activity!!, MEDIA_PROJECTION_REQUEST_CODE)
+                    pendingRecordingResult = result
+                    SantriqxSDK.startRecording(
+                        activity = activity!!,
+                        requestCode = MEDIA_PROJECTION_REQUEST_CODE,
+                        onSuccess = { streamKey, rtmpUrl ->
+                            Log.d(TAG, "✅ RTMP ready: $streamKey")
+                            // Don't return yet — wait for permission result
+                            // Store streamKey + rtmpUrl to return after service starts
+                            pendingRecordingResult?.success(mapOf(
+                                "success" to true,
+                                "streamKey" to streamKey,
+                                "rtmpUrl" to rtmpUrl
+                            ))
+                            pendingRecordingResult = null
+                        },
+                        onError = { err ->
+                            Log.e(TAG, "❌ Recording error: $err")
+                            pendingRecordingResult?.success(mapOf(
+                                "success" to false,
+                                "message" to err
+                            ))
+                            pendingRecordingResult = null
+                        }
+                    )
                 }
 
-                // ── Stop Streaming ──
-               // ── Stop Streaming ──
-"stopStreaming" -> {
-    try {
-        // 1. Stop recording service
-        context?.startService(Intent(context, ScreenRecordingService::class.java).apply {
-            action = ScreenRecordingService.ACTION_STOP
-        })
-        
-        // 2. Call stream ended API (if streamKey exists)
-        val streamKey = pendingStreamKey
-        if (!streamKey.isNullOrEmpty()) {
-            SantriqxSDK.endStream(streamKey) { res ->
-                 
-            }
-        }
-        
-        result.success(null)
-    } catch (e: Exception) { result.error("STOP_ERROR", e.message, null) }
-}
+                // ── Stop Recording ──
+                "stopStreaming" -> {
+                    try {
+                        if (context != null) {
+                            SantriqxSDK.stopRecording(context!!)
+                        }
+                        result.success(null)
+                    } catch (e: Exception) {
+                        result.error("STOP_ERROR", e.message, null)
+                    }
+                }
 
                 "isStreaming" -> result.success(ScreenRecordingService.isRunning)
 
@@ -475,58 +363,23 @@ private var savedProjectionData: Intent? = null
         gyroscopeReceiver?.registerReceivers(binding.applicationContext)
     }
 
-    // ── Start ScreenRecordingService (called after SDK grants permissions) ────
-
-    private fun startStreamingService(resultCode: Int, data: Intent?) {
-        val intent = Intent(context, ScreenRecordingService::class.java).apply {
-            action = ScreenRecordingService.ACTION_START
-            putExtra(ScreenRecordingService.EXTRA_RESULT_CODE, resultCode)
-            putExtra(ScreenRecordingService.EXTRA_DATA, data)
-            putExtra(ScreenRecordingService.EXTRA_GAME_ID, pendingGameId)
-            putExtra(ScreenRecordingService.EXTRA_STREAM_URL, pendingStreamUrl)
-            putExtra("targetPackageName", pendingTargetPackage)
-            putExtra("streamTitle", pendingStreamTitle)
-            putExtra("playerId", pendingPlayerId)
-            putExtra("audio", pendingAudio)
-            putExtra("videoEnabled", pendingVideoEnabled)
-            putExtra("streamKey", pendingStreamKey)
-            putExtra("playerName", pendingPlayerName)
-            putExtra("gameName", pendingGameName)
-            putExtra("minimumStreamSpeed", pendingMinStreamSpeed)
-            putExtra("badConnectionTimeout", pendingBadConnectionTimeout)
-        }
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            context?.startForegroundService(intent)
-        } else {
-            context?.startService(intent)
-        }
-
-        pendingResult?.success("recording_started")
-        pendingResult = null
-    }
-
     // ── Activity Results ─────────────────────────────────────────────────────
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?): Boolean {
 
-        // MediaProjection result (via SDK)
+        // ── MediaProjection result — forward to SDK ──
         if (requestCode == MEDIA_PROJECTION_REQUEST_CODE) {
-            StreamingSDK.handleMediaProjectionResult(
+            SantriqxSDK.handleRecordingResult(
+                activity = activity!!,
                 requestCode = requestCode,
                 expectedCode = MEDIA_PROJECTION_REQUEST_CODE,
                 resultCode = resultCode,
                 data = data,
-                onGranted = { code, projData ->
-    Log.d(TAG, "✅ MediaProjection granted via SDK")
-    savedProjectionResultCode = code        // ← ADD
-    savedProjectionData = projData          // ← ADD
-    startStreamingService(code, projData)
-},
+                onGranted = {
+                    Log.d(TAG, "✅ Recording started via SDK")
+                },
                 onDenied = {
-                    Log.e(TAG, "❌ MediaProjection denied")
-                    pendingResult?.error("DENIED", "MediaProjection permission denied", null)
-                    pendingResult = null
+                    Log.e(TAG, "❌ Recording permission denied")
                 }
             )
             return true
@@ -536,7 +389,6 @@ private var savedProjectionData: Intent? = null
         if (requestCode == FACE_RECOGNITION_REQUEST_CODE) {
             val faceResult = pendingFaceResult
             pendingFaceResult = null
-
             if (faceResult != null) {
                 if (resultCode == Activity.RESULT_OK && data != null) {
                     faceResult.success(mapOf(
@@ -573,16 +425,11 @@ private var savedProjectionData: Intent? = null
         return false
     }
 
-    // ── Permission Results ──────────────────────────────────────────────────
-
     override fun onRequestPermissionsResult(
         requestCode: Int, permissions: Array<out String>, grantResults: IntArray
-    ): Boolean {
-        return false
-    }
+    ): Boolean = false
 
     // ── MethodCallHandler (main channel) ──
-
     override fun onMethodCall(call: MethodCall, result: Result) {
         when (call.method) {
             "start", "stop", "hasGyroscope", "isGyroActive" ->
@@ -593,8 +440,7 @@ private var savedProjectionData: Intent? = null
         }
     }
 
-    // ── ActivityAware ─────────────────────────────────────────────────────────
-
+    // ── ActivityAware ──
     override fun onAttachedToActivity(binding: ActivityPluginBinding) {
         activity = binding.activity; activityBinding = binding
         binding.addActivityResultListener(this); binding.addRequestPermissionsResultListener(this)
