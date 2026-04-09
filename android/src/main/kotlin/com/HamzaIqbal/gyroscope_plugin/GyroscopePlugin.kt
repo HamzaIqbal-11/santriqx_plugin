@@ -115,7 +115,12 @@ class GyroscopePlugin : FlutterPlugin, MethodCallHandler, ActivityAware,
                     val appId = call.argument<String>("appId") ?: ""
                     val apiSecretKey = call.argument<String>("apiSecretKey") ?: ""
                     val baseUrl = call.argument<String>("baseUrl") ?: ""
-                    SantriqxSDK.init(appId, apiSecretKey, baseUrl = baseUrl)
+                      Log.d(TAG, "✅ init trigger")
+                     SantriqxSDK.init(
+        appId = appId,
+        apiSecretKey = apiSecretKey,
+        baseUrl = baseUrl    // ← named argument
+    )
                     result.success(mapOf("success" to true, "baseUrl" to SantriqxSDK.baseUrl))
                 }
 
