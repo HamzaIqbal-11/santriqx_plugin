@@ -7,6 +7,8 @@ dependencyResolutionManagement {
         mavenCentral()
         maven { url = uri("https://jitpack.io") }
 
+        maven { url = uri("https://storage.googleapis.com/download.flutter.io") }
+
         // GitLab SDK
         maven {
             url = uri("https://gitlab.com/api/v4/projects/81120461/packages/maven")
